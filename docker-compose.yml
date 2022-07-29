@@ -1,0 +1,48 @@
+version: "3.2"
+services:
+  web:
+    links:
+      - db
+    build: .
+    ports:
+      - "8000:8000"
+    networks:
+      - mired
+
+  db:
+    image: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=stock_management
+    ports:
+      - '5438:5432'
+    volumes:
+      - ./postgres-data1:/var/lib/postgresql/data
+    networks:
+      - mired
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    networks:
+      - mired
+
+  worker:
+    build: .
+    command: ['celery', '-A', 'app.core.celery_app', 'worker', '-l', 'info']
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - C_FORCE_ROOT=true
+    depends_on:
+      - web
+      - redis
+      - db
+    networks:
+      - mired
+
+networks:
+  mired:
